@@ -261,7 +261,7 @@ dependencies = [
 
 [[package]]
 name = "clanko_bot"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyhow",
  "clanko_zbierac",
@@ -279,13 +279,14 @@ dependencies = [
 
 [[package]]
 name = "clanko_zbierac"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d612e5b078ba2d26ff1b78bdafd70efb5f589b770161437744b5755d688ec64e"
+checksum = "0a9242e41484a00bb3e9a1f771053213087401d57e9c914c365e3ec9c2289d8f"
 dependencies = [
  "anyhow",
  "async-trait",
  "clap",
+ "ego-tree",
  "pandoc",
  "regex",
  "reqwest",
