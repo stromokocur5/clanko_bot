@@ -7,21 +7,32 @@ use serenity::builder::CreateAttachment;
 use serenity::model::channel::Message;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
+use std::sync::Arc;
 
 #[derive(serde::Deserialize, Clone)]
 pub struct Discord {
     pub token: String,
 }
 
+struct Data;
+
+impl TypeMapKey for Data {
+    type Value = Arc<RwLock<MediumClient>>;
+}
+
 impl Discord {
     pub async fn start(&self, medium_client: MediumClient) -> Result<()> {
         let intents = GatewayIntents::GUILD_MESSAGES | GatewayIntents::MESSAGE_CONTENT;
         let mut client = Client::builder(self.token.to_string(), intents)
-            .event_handler(Handler {
-                client: medium_client,
-            })
+            .event_handler(Handler)
             .await
             .map_err(|_| anyhow!("Err creating client"))?;
+
+        {
+            let mut data = client.data.write().await;
+
+            data.insert::<Data>(Arc::new(RwLock::new(medium_client)));
+        }
 
         if let Err(why) = client.start().await {
             println!("Client error: {why:?}");
@@ -39,10 +50,7 @@ impl From<Config> for Discord {
     }
 }
 
-struct Handler {
-    client: MediumClient,
-}
-
+struct Handler;
 #[async_trait]
 impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
@@ -54,12 +62,19 @@ impl EventHandler for Handler {
                 return;
             }
             let url = url.unwrap();
-            let temp = self.client.get_article(&url).await;
-            if let Err(why) = temp {
-                println!("Something went wrong: {}", why);
+            let data = ctx.data.write().await;
+            let data = data.get::<Data>();
+            if let None = data {
+                println!("Something went wrong",);
                 return;
             }
-            let (article, title) = temp.unwrap();
+            let mut article = data.unwrap().write().await;
+            let article = { article.get_article(&url).await };
+            if let None = data {
+                println!("Something went wrong",);
+                return;
+            }
+            let (article, title) = article.unwrap();
             if let Err(why) = clanko_zbierac::markdown_to_pdf(&article, &title) {
                 println!("Something went wrong: {}", why);
                 return;
